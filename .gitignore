@@ -38,11 +38,6 @@ logs/
 tmp/
 temp/
 
-# Keep the Quellen (research) folder local, don't push to public repo
+# Keep local/private folders out of public repo
 Quellen/
-
-# Old numbered files (keep spec/ versions)
-01_PROJECT_CHARTER.md
-02_TECHNICAL_SPECIFICATION.md
-03_POTENTIAL_PARTNERS.md
-04_DESIGN_DECISIONS.md
+internal/
