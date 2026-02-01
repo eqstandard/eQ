@@ -1,0 +1,48 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node.js (for future implementations)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Keep the Quellen (research) folder local, don't push to public repo
+Quellen/
+
+# Old numbered files (keep spec/ versions)
+01_PROJECT_CHARTER.md
+02_TECHNICAL_SPECIFICATION.md
+03_POTENTIAL_PARTNERS.md
+04_DESIGN_DECISIONS.md
