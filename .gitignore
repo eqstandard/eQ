@@ -40,4 +40,8 @@ temp/
 
 # Keep local/private folders out of public repo
 Quellen/
+sources/
 internal/
+
+# IDE workspace files
+*.code-workspace
