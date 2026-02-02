@@ -43,6 +43,104 @@
 
 ---
 
+## 0. Data Format Choice
+
+### 0.1 JSON vs TOON Analysis
+
+**Decision:** Use JSON as the primary data format.
+
+**Date:** 2026-02-02
+
+**Alternatives Considered:**
+
+| Format | Description |
+|--------|-------------|
+| **JSON** | JavaScript Object Notation - universal data interchange format |
+| **TOON** | Token-Oriented Object Notation - compact format designed for LLM prompts (30-60% fewer tokens) |
+| **XML** | Extensible Markup Language - legacy enterprise format |
+| **TOML** | Tom's Obvious Minimal Language - configuration file format |
+
+### 0.2 Why Not TOON?
+
+[TOON](https://github.com/toon-format/toon) (Token-Oriented Object Notation) is a promising new format that reduces tokens by 30-60% compared to JSON. However, it is **not suitable** for eQ because:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TOON vs JSON for eQ                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  TOON is designed for:          eQ requires:                    │
+│  • LLM input optimization       • System-to-system interchange  │
+│  • Reducing API token costs     • Cryptographic signatures      │
+│  • AI prompt efficiency         • Schema validation             │
+│  • Tabular/uniform data         • Nested structures             │
+│                                                                  │
+│  ❌ Mismatch: TOON solves a different problem than eQ needs    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Detailed comparison:**
+
+| Criterion | JSON | TOON | Winner for eQ |
+|-----------|------|------|---------------|
+| **Primary use case** | Data interchange | LLM input | **JSON** |
+| **Schema validation** | JSON Schema (mature) | None standardized | **JSON** |
+| **Cryptographic signatures** | JCS standard exists | No canonical form | **JSON** |
+| **Web/API native** | Universal support | Requires libraries | **JSON** |
+| **Tooling ecosystem** | Every language | Growing (TS, Python, Rust) | **JSON** |
+| **Nested structures** | Efficient | Loses advantage | **JSON** |
+| **Spec stability** | Stable | v3.0 working draft | **JSON** |
+| **Token efficiency** | Baseline | 30-60% reduction | TOON |
+| **LLM accuracy** | 70% benchmark | 74% benchmark | TOON |
+
+**Key reasons for JSON:**
+
+1. **eQ is data interchange, not LLM input** - TOON explicitly states it's "intended for *LLM input* as a drop-in representation of your existing JSON"
+
+2. **Cryptographic signatures require canonical serialization** - JSON has JCS (JSON Canonicalization Scheme, RFC 8785); TOON has no equivalent
+
+3. **Schema validation is critical** - Receipt compliance across jurisdictions requires robust validation; JSON Schema is mature and universal
+
+4. **eQ has nested structures** - Merchant objects, transaction objects, extensions are nested; TOON benchmarks show it performs worse than compact JSON for nested data
+
+5. **TOON spec is evolving** - Currently v3.0 "working draft"; a 10+ year standard needs stable foundations
+
+### 0.3 Future Consideration: TOON as Secondary Format
+
+If AI processing of receipts becomes important, a future extension could support TOON as an **optional output format**:
+
+```
+GET /eq/v1/receipts/{id}
+Accept: application/json      → Returns JSON (default, canonical)
+Accept: text/toon             → Returns TOON (for AI pipelines)
+```
+
+This would allow:
+- JSON remains the authoritative format (signatures, validation)
+- TOON provided as convenience for AI/LLM use cases
+- No impact on core specification
+
+**Status:** Not planned for v1.0. May revisit when TOON specification stabilizes.
+
+### 0.4 Why JSON over XML/TOML?
+
+| Format | Reason for Rejection |
+|--------|---------------------|
+| **XML** | Larger payload, verbose, declining ecosystem for new projects |
+| **TOML** | Designed for config files, not data interchange; no schema validation; poor web support |
+| **YAML** | Ambiguous parsing edge cases; security concerns; JSON superset adds complexity |
+
+**JSON advantages:**
+- Native web/JavaScript support
+- Smaller payloads than XML
+- JSON Schema provides robust validation
+- Universal tooling across all languages
+- QR code transport (gzip compresses well)
+- Industry alignment (ZUGFeRD, REST APIs)
+
+---
+
 ## 1. Technical Edge Cases
 
 ### 1.1 Offline Support
