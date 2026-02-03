@@ -123,21 +123,296 @@ This would allow:
 
 **Status:** Not planned for v1.0. May revisit when TOON specification stabilizes.
 
-### 0.4 Why JSON over XML/TOML?
+### 0.4 Detailed Alternative Analysis
 
-| Format | Reason for Rejection |
-|--------|---------------------|
-| **XML** | Larger payload, verbose, declining ecosystem for new projects |
-| **TOML** | Designed for config files, not data interchange; no schema validation; poor web support |
-| **YAML** | Ambiguous parsing edge cases; security concerns; JSON superset adds complexity |
+#### 0.4.1 XML with XSD
 
-**JSON advantages:**
-- Native web/JavaScript support
-- Smaller payloads than XML
-- JSON Schema provides robust validation
-- Universal tooling across all languages
-- QR code transport (gzip compresses well)
-- Industry alignment (ZUGFeRD, REST APIs)
+XML (Extensible Markup Language) with XSD (XML Schema Definition) was seriously considered due to its maturity in enterprise and government systems.
+
+**XML + XSD Advantages:**
+
+| Advantage | Description |
+|-----------|-------------|
+| **Mature schema validation** | XSD is ISO standardized (ISO/IEC 19757), battle-tested for 20+ years |
+| **Enterprise adoption** | Widely used in banking, government, healthcare (HL7, SWIFT, etc.) |
+| **E-invoice alignment** | ZUGFeRD/Factur-X and UBL use XML; easier B2B integration |
+| **Transformation tools** | XSLT enables powerful transformations between formats |
+| **Namespaces** | Native support for mixing schemas and extensions |
+| **Document signing** | XML-DSig (W3C) is a mature standard for digital signatures |
+| **Attributes vs elements** | Can express metadata separately from content |
+
+**XML + XSD Disadvantages:**
+
+| Disadvantage | Impact on eQ |
+|--------------|--------------|
+| **Verbose syntax** | 30-50% larger payloads than JSON |
+| **QR code inefficiency** | Larger size = harder to fit in QR codes |
+| **Web ecosystem decline** | Modern APIs (REST, GraphQL) use JSON; XML tooling declining |
+| **Parsing complexity** | DOM/SAX parsers more complex than JSON.parse() |
+| **JavaScript friction** | Not native; requires libraries and conversion |
+| **Developer experience** | Younger developers less familiar with XML |
+| **Mobile overhead** | Heavier parsing on resource-constrained devices |
+
+**Payload size comparison (same receipt):**
+
+```xml
+<!-- XML: 847 bytes -->
+<?xml version="1.0" encoding="UTF-8"?>
+<receipt xmlns="https://eqstandard.org/schema/v1">
+  <metadata>
+    <id>550e8400-e29b-41d4-a716-446655440000</id>
+    <issuedAt>2026-01-31T14:30:00+01:00</issuedAt>
+    <currency>CHF</currency>
+  </metadata>
+  <merchant>
+    <name>Bio Market</name>
+    <taxId>CHE-123.456.789</taxId>
+  </merchant>
+  <items>
+    <item lineNumber="1">
+      <description>Organic Milk 1L</description>
+      <quantity>2</quantity>
+      <unitPrice>2.90</unitPrice>
+      <totalPrice>5.80</totalPrice>
+    </item>
+  </items>
+  <totals>
+    <grandTotal>5.80</grandTotal>
+  </totals>
+</receipt>
+```
+
+```json
+// JSON: 456 bytes (46% smaller)
+{
+  "eq_version": "1.0.0",
+  "receipt": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "issued_at": "2026-01-31T14:30:00+01:00",
+    "currency": "CHF",
+    "merchant": {
+      "name": "Bio Market",
+      "tax_id": "CHE-123.456.789"
+    },
+    "items": [{
+      "line_number": 1,
+      "description": "Organic Milk 1L",
+      "quantity": 2,
+      "unit_price": 2.90,
+      "total_price": 5.80
+    }],
+    "totals": { "grand_total": 5.80 }
+  }
+}
+```
+
+**Decision rationale:**
+
+XML was rejected primarily because:
+
+1. **Consumer-facing standard** - eQ targets consumers with smartphone apps, not just enterprise B2B; JSON is native to this ecosystem
+2. **QR code transport** - Smaller payloads critical for offline/QR use cases
+3. **Developer adoption** - JSON lowers barrier for implementers, accelerating ecosystem growth
+4. **Modern tooling** - JSON Schema validation is sufficient and better integrated with modern development workflows
+
+**Mitigation:** The specification includes guidance for XML transformation for systems requiring it (e.g., legacy ERP integration via XSLT).
+
+---
+
+#### 0.4.2 YAML
+
+YAML (YAML Ain't Markup Language) was considered for its human readability.
+
+**YAML Advantages:**
+
+| Advantage | Description |
+|-----------|-------------|
+| **Human readable** | Clean syntax, no quotes for most strings |
+| **Comments** | Native comment support |
+| **JSON superset** | Valid JSON is valid YAML |
+| **Configuration standard** | Popular for config files (Docker, Kubernetes, CI/CD) |
+
+**YAML Disadvantages:**
+
+| Disadvantage | Impact on eQ |
+|--------------|--------------|
+| **Parsing ambiguities** | `no` becomes boolean `false`; `1.2.3` can be misinterpreted |
+| **Security concerns** | Arbitrary code execution in some parsers (YAML deserialization attacks) |
+| **Whitespace sensitivity** | Indentation errors cause silent failures |
+| **No native web support** | Requires libraries in browsers |
+| **Multiple specs** | YAML 1.1 vs 1.2 have different behaviors |
+| **Schema validation** | No equivalent to JSON Schema maturity |
+
+**The "Norway Problem":**
+
+```yaml
+# YAML 1.1 interprets this incorrectly:
+country: NO        # Parsed as boolean false, not string "NO"
+version: 1.0       # Parsed as float 1.0, not string "1.0"
+date: 2026-01-31   # Parsed as date object, not string
+
+# JSON is unambiguous:
+{ "country": "NO", "version": "1.0", "date": "2026-01-31" }
+```
+
+**Decision rationale:** YAML's parsing ambiguities and security concerns make it unsuitable for a financial/legal document format where precision is critical.
+
+---
+
+#### 0.4.3 TOML
+
+TOML (Tom's Obvious Minimal Language) was considered briefly.
+
+**TOML Advantages:**
+
+| Advantage | Description |
+|-----------|-------------|
+| **Human readable** | Very clean syntax |
+| **Unambiguous** | No YAML-style parsing surprises |
+| **Native date/time** | First-class datetime support |
+| **Comments** | Native comment support |
+
+**TOML Disadvantages:**
+
+| Disadvantage | Impact on eQ |
+|--------------|--------------|
+| **Designed for config** | Not intended for data interchange |
+| **Arrays of tables awkward** | Receipt line items would be clunky |
+| **No schema validation** | No equivalent to JSON Schema |
+| **Limited tooling** | Far fewer libraries than JSON |
+| **No web support** | Not native to browsers |
+| **Flat structure bias** | Nested objects less natural |
+
+**Example (awkward for receipts):**
+
+```toml
+# TOML: Arrays of tables are verbose for receipt items
+[receipt]
+id = "550e8400-e29b-41d4-a716-446655440000"
+issued_at = 2026-01-31T14:30:00+01:00
+currency = "CHF"
+
+[receipt.merchant]
+name = "Bio Market"
+tax_id = "CHE-123.456.789"
+
+[[receipt.items]]
+line_number = 1
+description = "Organic Milk 1L"
+quantity = 2
+unit_price = 2.90
+total_price = 5.80
+
+[[receipt.items]]
+line_number = 2
+description = "Bread"
+quantity = 1
+unit_price = 4.50
+total_price = 4.50
+```
+
+**Decision rationale:** TOML is excellent for configuration files (Cargo.toml, pyproject.toml) but not designed for structured data interchange.
+
+---
+
+#### 0.4.4 Protocol Buffers / Binary Formats
+
+Binary formats like Protocol Buffers (protobuf), MessagePack, CBOR, and Avro were considered for efficiency.
+
+**Binary Format Advantages:**
+
+| Advantage | Description |
+|-----------|-------------|
+| **Compact size** | 50-80% smaller than JSON |
+| **Fast parsing** | Binary parsing faster than text |
+| **Strong typing** | Schema-enforced types |
+| **Bandwidth efficient** | Ideal for high-volume APIs |
+
+**Binary Format Disadvantages:**
+
+| Disadvantage | Impact on eQ |
+|--------------|--------------|
+| **Not human readable** | Cannot debug by inspection |
+| **Schema required** | Must have schema to decode |
+| **QR code incompatible** | Binary doesn't fit QR alphanumeric mode |
+| **Tooling barrier** | Requires special tools to inspect |
+| **Versioning complexity** | Schema evolution more complex |
+| **Consumer unfriendly** | End users can't read their receipts |
+
+**Decision rationale:** Human readability is a core design principle. Consumers and developers should be able to inspect receipts directly. Binary formats would also complicate QR code transport.
+
+---
+
+#### 0.4.5 CSV
+
+CSV (Comma-Separated Values) was considered for line items due to its simplicity.
+
+**CSV Advantages:**
+
+| Advantage | Description |
+|-----------|-------------|
+| **Simple** | Universal, minimal syntax |
+| **Compact** | Very efficient for tabular data |
+| **Spreadsheet compatible** | Opens directly in Excel |
+
+**CSV Disadvantages:**
+
+| Disadvantage | Impact on eQ |
+|--------------|--------------|
+| **Flat only** | Cannot represent nested structures (merchant, transaction) |
+| **No types** | Everything is a string |
+| **No schema** | No validation mechanism |
+| **Escaping issues** | Commas in descriptions cause problems |
+| **No metadata** | Cannot include receipt-level fields |
+
+**Decision rationale:** Receipts require nested structures (merchant info, transaction details, items, taxes, extensions). CSV cannot represent this without lossy flattening.
+
+---
+
+### 0.5 Format Decision Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FORMAT EVALUATION MATRIX                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Criteria weights for eQ:                                       │
+│  ████████████ Schema validation (critical)                      │
+│  ████████████ Cryptographic signatures (critical)               │
+│  ██████████░░ Web/API compatibility (high)                      │
+│  ██████████░░ QR code transport (high)                          │
+│  ████████░░░░ Human readability (medium)                        │
+│  ██████░░░░░░ Payload size (medium)                             │
+│  ████░░░░░░░░ Enterprise adoption (low for v1)                  │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Results:                                                        │
+│                                                                  │
+│  JSON   ████████████████████  Best overall fit                  │
+│  XML    ██████████████░░░░░░  Good for enterprise; too verbose  │
+│  YAML   ████████████░░░░░░░░  Parsing concerns; no schema       │
+│  TOON   ██████████░░░░░░░░░░  Wrong use case (LLM, not data)    │
+│  TOML   ████████░░░░░░░░░░░░  Config format, not data           │
+│  Binary ██████░░░░░░░░░░░░░░  Not human readable                │
+│  CSV    ████░░░░░░░░░░░░░░░░  Cannot represent structure        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Final decision:** JSON with JSON Schema validation
+
+**Key factors:**
+1. Universal web/API ecosystem support
+2. JSON Schema provides robust validation
+3. JCS (RFC 8785) enables cryptographic signatures
+4. Compact enough for QR code transport (with gzip)
+5. Human readable for debugging and transparency
+6. Lowest barrier to adoption for implementers
+
+**Compatibility provisions:**
+- XML transformation guidance for legacy systems
+- Future TOON output for AI use cases (when stable)
 
 ---
 
