@@ -147,10 +147,12 @@ The digital receipt landscape is fragmented:
 #### UC12: Warranty Claim Validation
 > As a **warranty service provider**, I want to verify that a receipt was genuinely issued by the claimed merchant, so that I don't process fraudulent warranty claims based on forged receipts.
 
+#### UC13: Insurance Claims (Theft/Damage Documentation)
+> As a **consumer**, I want to quickly find and share authentic receipts with my insurance company after theft or damage, so that I can prove ownership and purchase value for faster claim processing.
+
 ### Secondary Use Cases (Future Phases)
 
 - Second-hand marketplace proof of purchase (with verifiable receipt transfer)
-- Insurance claims documentation
 - Carbon footprint tracking
 - Price comparison and savings analysis
 

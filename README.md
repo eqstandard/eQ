@@ -106,6 +106,7 @@ eQ provides a **single, open format** that:
 - 🍎 **Health Apps** - Track nutrition from grocery purchases
 - ⚠️ **Product Recalls** - Get notified if you bought a recalled product
 - 💼 **Expense Reports** - Auto-categorized business expenses
+- 🔒 **Insurance Claims** - Find receipts instantly after theft or damage
 
 ## Getting Started
 
