@@ -227,7 +227,7 @@ WITH eQ VENDOR VERIFICATION:
 │  Fraudster creates fake receipt:                                │
 │  ┌─────────────────────────┐                                    │
 │  │ Receipt from: Apple AG  │                                    │
-│  │ Signature: ??? ❌       │  ← Cannot sign without Apple's    │
+│  │ Signature: ??? ❌       │  ← Cannot sign without Apple's     │
 │  └─────────────────────────┘    private key                     │
 │                                                                 │
 │  Verifier checks:                                               │
@@ -306,12 +306,12 @@ When a warranty provider, bank, or other party needs to verify a receipt:
 │                    │                                            │
 │          ┌────────┴────────┐                                    │
 │          ▼                 ▼                                    │
-│    ┌──────────┐      ┌──────────┐                               │
+│    ┌──────────┐      ┌───────────┐                              │
 │    │ VALID ✅ │      │INVALID ❌│                              │
-│    │          │      │          │                               │
-│    │ Process  │      │ Reject   │                               │
-│    │ warranty │      │ claim    │                               │
-│    └──────────┘      └──────────┘                               │
+│    │          │      │           │                              │
+│    │ Process  │      │ Reject    │                              │
+│    │ warranty │      │ claim     │                              │
+│    └──────────┘      └───────────┘                              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1095,14 +1095,14 @@ Optional link to EU DPP per item. Same product identifier (GTIN / GS1 Digital Li
 │                    │                                            │
 │                    ▼                                            │
 │  3. If recall found:                                            │
-│     ┌──────────────────────────────────────┐                     │
+│     ┌──────────────────────────────────────┐                    │
 │     │ ⚠️ PUSH NOTIFICATION                 │                   │
 │     │ "Product recall alert!"              │                    │
 │     │ "Baby toy purchased 2026-01-15       │                    │
 │     │ has been recalled due to             │                    │
 │     │ choking hazard."                     │                    │
 │     │ [View Details] [Return Instructions] │                    │
-│     └──────────────────────────────────────┘                     │
+│     └──────────────────────────────────────┘                    │
 │                    │                                            │
 │                    ▼                                            │
 │  4. Consumer can act immediately                                │

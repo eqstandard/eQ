@@ -27,7 +27,7 @@
 │  ✅ Prices, taxes               ❌ Customer address            │
 │  ✅ Date/time                   ❌ Customer ID                 │
 │  ✅ Signatures                  ❌ Payment card details        │
-│                                 ❌ Loyalty card ID             │
+│                                 ❌ Loyalty card ID              │
 │                                                                 │
 │  Customer receives: ACCESS TOKEN (like a claim ticket)          │
 │  Token allows retrieval but doesn't identify the person         │
@@ -75,7 +75,7 @@
 │  • AI prompt efficiency         • Schema validation             │
 │  • Tabular/uniform data         • Nested structures             │
 │                                                                 │
-│  ❌ Mismatch: TOON solves a different problem than eQ needs    │
+│  ❌ Mismatch: TOON solves a different problem than eQ needs     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -451,7 +451,7 @@ Consumer at checkout:
 │  │ ▄▄▄▄▄▄▄ │  ← Consumer scans with any app                     │
 │  │ █ ▀▀▀ █ │     No account needed                              │
 │  │ ▀▀▀▀▀▀▀ │     No identification required                     │
-│  └─────────┘     Token stored; receipt fetched when online       │
+│  └─────────┘     Token stored; receipt fetched when online      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

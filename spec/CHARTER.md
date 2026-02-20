@@ -16,14 +16,14 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                                                                  │
+│                                                                 │
 │     ███████╗ ██████╗                                            │
 │     ██╔════╝██╔═══██╗   electronic Quittung                     │
 │     █████╗  ██║   ██║   The open standard for digital receipts  │
 │     ██╔══╝  ██║▄▄ ██║                                           │
 │     ███████╗╚██████╔╝   eqstandard.org                          │
 │     ╚══════╝ ╚══▀▀═╝                                            │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,7 +164,7 @@ The digital receipt landscape is fragmented:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Steering Committee                        │
+│                    Steering Committee                       │
 │  • Sets strategic direction and priorities                  │
 │  • Approves major specification changes                     │
 │  • Resolves disputes                                        │
@@ -184,10 +184,10 @@ The digital receipt landscape is fragmented:
                               │
         ┌─────────────────────┴─────────────────────┐
         ▼                                           ▼
-┌───────────────────────┐              ┌───────────────────────┐
-│  Community Contributors│              │   Adopter Companies    │
-│  (Anyone can join)     │              │   (Implement standard) │
-└───────────────────────┘              └───────────────────────┘
+┌────────────────────────┐               ┌────────────────────────┐
+│  Community Contributors│               │   Adopter Companies    │
+│  (Anyone can join)     │               │   (Implement standard) │
+└────────────────────────┘               └────────────────────────┘
 ```
 
 ### Decision Making
