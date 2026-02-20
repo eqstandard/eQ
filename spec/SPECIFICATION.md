@@ -166,7 +166,11 @@ Response: Full eQ receipt JSON (if token valid)
 
 ### 3.2 Cryptographic Signatures (Required for Authenticity)
 
-Every eQ receipt SHOULD include a merchant signature:
+Every eQ receipt SHOULD include a merchant signature. Receipt and signature SHALL be in the **same** JSON document (one response, one file). Signature is **detached** (stored in `signatures`, not wrapping the payload) but computed over the **entire** receipt (or scope in `signed_fields`). Any change to signed content invalidates the signature.
+
+- **Canonicalization:** RFC 8785 (JCS) before signing.
+- **Envelope:** RFC 7515 (JWS) detached mode. Algorithms: ES256 (recommended), RS256 (allowed).
+- **Verifiers:** MUST verify signature over full signed scope; if verification fails, treat receipt as invalid.
 
 ```json
 {
@@ -469,6 +473,8 @@ Receipt
 | `timezone` | string | Yes | IANA timezone identifier |
 | `receipt_type` | enum | Yes | sale, refund, void, correction |
 | `receipt_number` | string | No | Merchant's internal reference |
+| `invoice_number` | string | No | Sequential invoice number (e.g. for Art. 226) |
+| `supply_date` | date | No | Date supply made/completed (if ≠ issued_at) |
 | `currency` | ISO 4217 | Yes | 3-letter currency code |
 
 ### 3.1.1 Receipt Types
@@ -601,11 +607,14 @@ For transactions split across multiple payments:
     "tax_id": "CHE-123.456.789",
     "tax_id_type": "CH_UID",
     "address": {
-      "street": "Bahnhofstrasse 1",
+      "line1": "Bahnhofstrasse 1",
+      "line2": null,
       "city": "Zürich",
       "postal_code": "8001",
+      "subdivision": "ZH",
       "country": "CH"
     },
+    "address_standard": "EN16931",
     "contact": {
       "phone": "+41 44 123 45 67",
       "email": "info@example-store.ch",
@@ -624,9 +633,12 @@ For transactions split across multiple payments:
 | `legal_name` | string | No | Official registered name |
 | `tax_id` | string | Yes* | Tax registration number (*jurisdiction dependent) |
 | `tax_id_type` | enum | Yes* | Type of tax ID (VAT, UID, etc.) |
-| `address` | object | Yes | Business address |
+| `address` | object | Yes | Business address (see address structure below) |
+| `address_standard` | string | No | Hint: `EN16931` \| `ISO20022` \| `local` — which guidance was used to fill address |
 | `contact` | object | No | Contact information |
 | `identifiers.gln` | string | No | GS1 Global Location Number |
+
+**Address structure:** `line1` (required), `line2` (optional), `city` (required), `postal_code` (required where applicable), `subdivision` (optional, e.g. canton/state), `country` (required, ISO 3166-1 alpha-2). Content may be filled per EN 16931, ISO 20022, or local norms. Deprecated: `street` — map to `line1` if present.
 
 ---
 
@@ -640,7 +652,7 @@ For multi-location merchants:
     "name": "Zürich Hauptbahnhof",
     "location_id": "LOC-001",
     "address": {
-      "street": "Bahnhofplatz 15",
+      "line1": "Bahnhofplatz 15",
       "city": "Zürich",
       "postal_code": "8001",
       "country": "CH"
@@ -651,6 +663,8 @@ For multi-location merchants:
   }
 }
 ```
+
+(Same address structure as merchant: line1, line2, city, postal_code, subdivision, country.)
 
 ---
 
@@ -835,6 +849,13 @@ GTIN enables:
       "tax_rate": 8.1,
       "taxable_amount": 38.40,
       "tax_amount": 3.11
+    },
+    {
+      "tax_category": "zero",
+      "tax_rate": 0,
+      "taxable_amount": 10.00,
+      "tax_amount": 0,
+      "exemption_reason": "Art. 148(a) Export"
     }
   ]
 }
@@ -846,6 +867,7 @@ GTIN enables:
 | `tax_rate` | decimal | Yes | Tax rate percentage |
 | `taxable_amount` | decimal | Yes | Amount subject to this tax rate |
 | `tax_amount` | decimal | Yes | Calculated tax amount |
+| `exemption_reason` | string | No | e.g. Art. 148(a) export, reverse charge |
 
 ---
 
@@ -889,7 +911,7 @@ Extensions allow optional data without bloating the core spec.
 {
   "extensions": {
     "eq:warranty": { },
-    "eq:loyalty": { },
+    "eq:b2b": { "customer_vat_id": "", "customer_address": { } },
     "eq:nutrition": { },
     "eq:carbon": { },
     "custom:mycompany": { }
@@ -1107,48 +1129,21 @@ For tamper-proof receipts (e.g., legal compliance):
 | **API Pull** | Consumer fetches from merchant | Medium |
 | **Bluetooth** | Proximity delivery | High |
 
-### 6.2 QR Code Payload
+### 6.2 QR Code Payload (Standard)
 
-**Option A: Embedded Receipt (< 3KB)**
+QR contains **only** the reference and access token. App fetches receipt from merchant API.
 
-For small receipts, embed directly in QR code:
-
-```
-eq://v1/receipt/{base64-encoded-gzipped-json}
-```
-
-**Option B: Multi-QR Code (3-10KB)**
-
-For medium receipts, split across multiple QR codes:
-
-```
-QR Code 1: eq://v1/multi/1of3/{chunk-id}/{base64-chunk-1}
-QR Code 2: eq://v1/multi/2of3/{chunk-id}/{base64-chunk-2}
-QR Code 3: eq://v1/multi/3of3/{chunk-id}/{base64-chunk-3}
+**Payload (JSON):**
+```json
+{
+  "eq": "1.0",
+  "endpoint": "https://shop.example.ch/eq/v1",
+  "receipt_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token": "<access-token>"
+}
 ```
 
-Display format at POS:
-```
-┌─────────────────────────────────────────────┐
-│  Scan all 3 QR codes for your receipt:     │
-│                                             │
-│  ┌─────┐    ┌─────┐    ┌─────┐            │
-│  │█▀▀█│    │█▀▀█│    │█▀▀█│            │
-│  │▀██▀│    │▀██▀│    │▀██▀│            │
-│  │▄▄▄▄│    │▄▄▄▄│    │▄▄▄▄│            │
-│  └─────┘    └─────┘    └─────┘            │
-│    1/3        2/3        3/3              │
-│                                             │
-└─────────────────────────────────────────────┘
-```
-
-**Option C: URL Reference (> 10KB or preferred)**
-
-For large receipts or when merchant prefers hosted retrieval:
-
-```
-eq://v1/fetch/{receipt-id}?merchant={merchant-domain}
-```
+**Usage:** App calls `GET {endpoint}/receipts/{receipt_id}` with `Authorization: Bearer {token}` and displays the returned receipt. Embedded or multi-QR modes may be defined in future extensions.
 
 ### 6.3 API Endpoints (Recommendations)
 
@@ -1733,6 +1728,33 @@ No special fields needed - UTF-8 handles directionality. Apps must:
 - [ ] Map items to chart of accounts
 - [ ] Extract tax information for VAT returns
 - [ ] Support batch import
+
+---
+
+## Appendix A: EN 16931 Field Mapping
+
+| eQ field | EN 16931 |
+|----------|----------|
+| receipt.id | — |
+| receipt.issued_at | BT-2 |
+| receipt.currency | BT-5 |
+| receipt.invoice_number | BT-1 |
+| receipt.supply_date | BT-72 |
+| merchant.name | BT-27 |
+| merchant.tax_id | BT-31 |
+| merchant.address.line1 | BT-35 |
+| merchant.address.line2 | BT-36 |
+| merchant.address.city | BT-38 |
+| merchant.address.postal_code | BT-39 |
+| merchant.address.country | BT-40 |
+| totals.subtotal | BT-109 |
+| totals.grand_total | BT-112 |
+| items[].line_number | BT-126 |
+| items[].quantity | BT-129 |
+| items[].unit_price | BT-146 |
+| items[].total_price | BT-131 |
+| taxes[].tax_rate | BT-151 |
+| taxes[].tax_amount | BT-152 |
 
 ---
 

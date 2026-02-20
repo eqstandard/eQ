@@ -330,13 +330,15 @@ All contributors must agree to:
 
 | Standard | Relationship |
 |----------|--------------|
-| **SDRS (Swedish Digital Receipt Standard)** | Learn from; potentially compatible extension |
-| **GS1 Digital Link** | Product identification; recommend GS1 GTINs where available |
-| **ZUGFeRD / Factur-X** | Align data model for B2B invoice compatibility |
-| **JSON Schema** | Use for validation |
-| **ISO 8601** | Date/time formatting |
-| **ISO 4217** | Currency codes |
-| **ISO 3166** | Country codes |
+| **EN 16931** | Align data model; field mapping in spec Appendix A |
+| **ZUGFeRD / Factur-X** | B2B invoice compatibility (EN 16931-based) |
+| **OMG DRAPI** | Learn from; differentiate on decentralization, privacy |
+| **fiskaltrust** | Implementation partner for DACH fiscal (TSE/RKSV) |
+| **EU Digital Product Passport** | Future extension (v1.1+), product/sustainability |
+| **SDRS** | Learn from; potentially compatible extension |
+| **GS1 Digital Link** | Product identification; recommend GTINs where available |
+| **JSON Schema** | Validation |
+| **ISO 8601, 4217, 3166** | Date, currency, country codes |
 
 ---
 
