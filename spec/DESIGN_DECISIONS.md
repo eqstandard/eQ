@@ -18,20 +18,20 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    PRIVACY MODEL                                 │
+│                    PRIVACY MODEL                                │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  RECEIPT contains:              RECEIPT does NOT contain:       │
-│  ✅ Merchant info               ❌ Customer name                 │
-│  ✅ Products purchased          ❌ Customer email                │
-│  ✅ Prices, taxes               ❌ Customer address              │
-│  ✅ Date/time                   ❌ Customer ID                   │
-│  ✅ Signatures                  ❌ Payment card details          │
-│                                 ❌ Loyalty card ID               │
-│                                                                  │
+│  ✅ Merchant info               ❌ Customer name               │
+│  ✅ Products purchased          ❌ Customer email              │
+│  ✅ Prices, taxes               ❌ Customer address            │
+│  ✅ Date/time                   ❌ Customer ID                 │
+│  ✅ Signatures                  ❌ Payment card details        │
+│                                 ❌ Loyalty card ID             │
+│                                                                 │
 │  Customer receives: ACCESS TOKEN (like a claim ticket)          │
 │  Token allows retrieval but doesn't identify the person         │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -68,15 +68,15 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                    TOON vs JSON for eQ                          │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  TOON is designed for:          eQ requires:                    │
 │  • LLM input optimization       • System-to-system interchange  │
 │  • Reducing API token costs     • Cryptographic signatures      │
 │  • AI prompt efficiency         • Schema validation             │
 │  • Tabular/uniform data         • Nested structures             │
-│                                                                  │
+│                                                                 │
 │  ❌ Mismatch: TOON solves a different problem than eQ needs    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -123,9 +123,19 @@ This would allow:
 
 **Status:** Not planned for v1.0. May revisit when TOON specification stabilizes.
 
-### 0.4 Detailed Alternative Analysis
+### 0.4 Address, Signature, QR, Transport (2026-02)
 
-#### 0.4.1 XML with XSD
+**Address:** One interchange structure (line1, line2, city, postal_code, subdivision, country). Optional `address_standard` (EN16931 | ISO20022 | local) as hint; content may follow any of these. No second schema.
+
+**Signature:** Receipt and signature in the same JSON document. JCS (RFC 8785) + JWS detached (RFC 7515); signature over full receipt. Any modification invalidates the signature.
+
+**QR:** Single payload only: endpoint, receipt_id, token. App fetches receipt via API. No embedded receipt or multi-QR in v1.0.
+
+**Transport:** All channels (QR, NFC, API, email) are untrusted. Consumer apps MUST verify receipt signature regardless of transport.
+
+### 0.5 Detailed Alternative Analysis
+
+#### 0.5.1 XML with XSD
 
 XML (Extensible Markup Language) with XSD (XML Schema Definition) was seriously considered due to its maturity in enterprise and government systems.
 
@@ -219,7 +229,7 @@ XML was rejected primarily because:
 
 ---
 
-#### 0.4.2 YAML
+#### 0.5.2 YAML
 
 YAML (YAML Ain't Markup Language) was considered for its human readability.
 
@@ -259,7 +269,7 @@ date: 2026-01-31   # Parsed as date object, not string
 
 ---
 
-#### 0.4.3 TOML
+#### 0.5.3 TOML
 
 TOML (Tom's Obvious Minimal Language) was considered briefly.
 
@@ -315,7 +325,7 @@ total_price = 4.50
 
 ---
 
-#### 0.4.4 Protocol Buffers / Binary Formats
+#### 0.5.4 Protocol Buffers / Binary Formats
 
 Binary formats like Protocol Buffers (protobuf), MessagePack, CBOR, and Avro were considered for efficiency.
 
@@ -343,7 +353,7 @@ Binary formats like Protocol Buffers (protobuf), MessagePack, CBOR, and Avro wer
 
 ---
 
-#### 0.4.5 CSV
+#### 0.5.5 CSV
 
 CSV (Comma-Separated Values) was considered for line items due to its simplicity.
 
@@ -373,9 +383,9 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    FORMAT EVALUATION MATRIX                      │
+│                    FORMAT EVALUATION MATRIX                     │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Criteria weights for eQ:                                       │
 │  ████████████ Schema validation (critical)                      │
 │  ████████████ Cryptographic signatures (critical)               │
@@ -384,11 +394,11 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 │  ████████░░░░ Human readability (medium)                        │
 │  ██████░░░░░░ Payload size (medium)                             │
 │  ████░░░░░░░░ Enterprise adoption (low for v1)                  │
-│                                                                  │
+│                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Results:                                                        │
-│                                                                  │
+│                                                                 │
+│  Results:                                                       │
+│                                                                 │
 │  JSON   ████████████████████  Best overall fit                  │
 │  XML    ██████████████░░░░░░  Good for enterprise; too verbose  │
 │  YAML   ████████████░░░░░░░░  Parsing concerns; no schema       │
@@ -396,7 +406,7 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 │  TOML   ████████░░░░░░░░░░░░  Config format, not data           │
 │  Binary ██████░░░░░░░░░░░░░░  Not human readable                │
 │  CSV    ████░░░░░░░░░░░░░░░░  Cannot represent structure        │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -431,12 +441,12 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 Consumer at checkout:
 ┌─────────────────────────────────────────────────────────────────┐
 │  "Would you like your receipt?"                                 │
-│                                                                  │
-│  [Paper]  [QR Code]  [Airdrop]  [No thanks]                    │
-│                                                                  │
+│                                                                 │
+│  [Paper]  [QR Code]  [Airdrop]  [No thanks]                     │
+│                                                                 │
 │  If QR Code selected:                                           │
 │  ┌─────────┐                                                    │
-│  │ ▄▄▄▄▄▄▄ │  ← Consumer scans with any app                    │
+│  │ ▄▄▄▄▄▄▄ │  ← Consumer scans with any app                     │
 │  │ █ ▀▀▀ █ │     No account needed                              │
 │  │ ▀▀▀▀▀▀▀ │     No identification required                     │
 │  └─────────┘                                                    │
@@ -703,29 +713,29 @@ After closure (redirect):
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TOKEN-BASED ACCESS                            │
+│                    TOKEN-BASED ACCESS                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  1. Customer pays (any method: cash, card, etc.)                │
-│                                                                  │
+│                                                                 │
 │  2. POS generates:                                              │
 │     • Receipt (no customer data)                                │
 │     • Access token (random, not linked to identity)             │
-│                                                                  │
+│                                                                 │
 │  3. Customer receives token via:                                │
 │     • QR code (printed or on screen)                            │
 │     • Airdrop/Bluetooth                                         │
 │     • NFC tap                                                   │
-│                                                                  │
+│                                                                 │
 │  4. Customer can:                                               │
 │     • Import to personal finance app                            │
 │     • Import to accounting software                             │
 │     • Store in warranty tracker                                 │
 │     • Ignore/discard                                            │
-│                                                                  │
+│                                                                 │
 │  TOKEN ≠ IDENTITY                                               │
 │  Having the token = having the receipt (like a coat check)      │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
