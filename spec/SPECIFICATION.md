@@ -381,7 +381,7 @@ For jurisdictions requiring fiscal device signatures (e.g., Germany TSE, Austria
 }
 ```
 
-### 3.6 Receipt Integrity Hash
+### 3.6 Receipt Integrity Hash (Optional)
 
 For quick integrity verification without full signature check:
 
@@ -389,7 +389,7 @@ For quick integrity verification without full signature check:
 {
   "integrity": {
     "algorithm": "SHA-256",
-    "hash": "a]9f8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b...",
+    "hash": "a9f8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b...",
     "scope": "receipt"
   }
 }
@@ -416,7 +416,8 @@ Receipt
 ├── taxes[] (tax breakdown)
 ├── totals (summary amounts)
 ├── extensions{} (optional modules)
-└── signatures{} (optional integrity)
+├── signatures{} (optional authenticity)
+└── integrity{} (optional hash for quick verification)
 ```
 
 ### 4.2 Complete Schema Overview
@@ -446,6 +447,12 @@ Receipt
     
     "extensions": { },
     "signatures": { }
+  },
+
+  "integrity": {
+    "algorithm": "SHA-256",
+    "hash": "hex-encoded hash of receipt",
+    "scope": "receipt"
   }
 }
 ```
@@ -1444,7 +1451,7 @@ For small businesses without technical resources, a free hosted service is recom
 {
   "$schema": "https://eqstandard.org/schema/v1/receipt.json",
   "eq_version": "1.0.0",
-  
+
   "receipt": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "issued_at": "2026-01-31T14:30:00+01:00",
@@ -1453,9 +1460,10 @@ For small businesses without technical resources, a free hosted service is recom
     "receipt_number": "R-2026-00001234",
     "currency": "CHF",
     "language": "de-CH",
-    
+
     "merchant": {
       "name": "Bio Market",
+      "legal_name": "Bio Market GmbH",
       "tax_id": "CHE-123.456.789 MWST",
       "tax_id_type": "CH_MWST",
       "address": {
@@ -1466,22 +1474,43 @@ For small businesses without technical resources, a free hosted service is recom
         "subdivision": "ZH",
         "country": "CH"
       },
-      "address_standard": "EN16931"
+      "address_standard": "EN16931",
+      "contact": {
+        "phone": "+41 44 123 45 67",
+        "email": "info@biomarket.ch",
+        "website": "https://biomarket.ch"
+      },
+      "identifiers": {
+        "gln": "7612345000001"
+      }
     },
-    
+
+    "location": {
+      "name": "Zürich Hauptbahnhof",
+      "location_id": "LOC-001",
+      "address": {
+        "line1": "Bahnhofplatz 15",
+        "city": "Zürich",
+        "postal_code": "8001",
+        "country": "CH"
+      }
+    },
+
     "transaction": {
       "transaction_id": "TXN-20260131-001234",
       "terminal_id": "POS-01",
       "payments": [
         {
           "method": "card",
-          "amount": 12.30,
+          "amount": 12.50,
+          "card_type": "debit",
           "card_brand": "Visa",
-          "card_last_four": "4242"
+          "card_last_four": "4242",
+          "authorization_code": "A1B2C3"
         }
       ]
     },
-    
+
     "items": [
       {
         "line_number": 1,
@@ -1525,7 +1554,7 @@ For small businesses without technical resources, a free hosted service is recom
         "tax_category": "standard"
       }
     ],
-    
+
     "taxes": [
       {
         "tax_category": "reduced",
@@ -1540,7 +1569,7 @@ For small businesses without technical resources, a free hosted service is recom
         "tax_amount": 0.15
       }
     ],
-    
+
     "totals": {
       "subtotal": 12.10,
       "tax_total": 0.42,
@@ -1550,7 +1579,7 @@ For small businesses without technical resources, a free hosted service is recom
       "amount_paid": 12.50,
       "amount_due": 0.00
     },
-    
+
     "extensions": {
       "eq:warranty": {
         "items": []
@@ -1564,7 +1593,23 @@ For small businesses without technical resources, a free hosted service is recom
           }
         ]
       }
+    },
+
+    "signatures": {
+      "merchant": {
+        "algorithm": "ES256",
+        "key_id": "biomarket-key-2026-01",
+        "certificate_url": "https://biomarket.ch/.well-known/eq/cert.pem",
+        "signed_fields": ["receipt"],
+        "signature": "MEUCIQDf4...base64...signature"
+      }
     }
+  },
+
+  "integrity": {
+    "algorithm": "SHA-256",
+    "hash": "a9f8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9",
+    "scope": "receipt"
   }
 }
 ```
