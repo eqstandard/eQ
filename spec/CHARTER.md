@@ -321,7 +321,7 @@ All contributors must agree to:
 
 **Project Lead:** Martin Koch  
 **Email:** team@eqstandard.org  
-**GitHub:** https://github.com/Martin-Koch-Roundit/eQ
+**GitHub:** https://github.com/eqstandard/eQ
 **Website:** https://eqstandard.org/
 
 ---

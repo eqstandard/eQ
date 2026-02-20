@@ -112,23 +112,42 @@ eQ provides a **single, open format** that:
 
 ### For Developers
 
+Validate receipts against the authoritative JSON Schema:
+
 ```bash
-# Validate an eQ receipt
-npm install @eqstandard/validator
+npm install ajv ajv-formats
 ```
 
 ```javascript
-import { validate } from '@eqstandard/validator';
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+import schema from "./schema/v1/receipt.schema.json" assert { type: "json" };
 
-const result = validate(receiptJson);
-console.log(result.valid); // true/false
+const ajv = new Ajv2020({ allErrors: true, strict: false });
+addFormats(ajv);
+const validate = ajv.compile(schema);
+
+const valid = validate(receiptJson);
+if (!valid) console.log(validate.errors);
+```
+
+Or in Python:
+
+```bash
+pip install jsonschema
+```
+
+```python
+import json, jsonschema
+schema = json.load(open("schema/v1/receipt.schema.json"))
+jsonschema.validate(receipt, schema)  # raises on error
 ```
 
 ### For Businesses
 
 1. Read the [Specification](/spec/SPECIFICATION.md)
 2. Implement eQ export in your POS
-3. Test with our [validation tool](https://verify.eqstandard.org)
+3. Validate against the [JSON Schema](/schema/v1/receipt.schema.json)
 4. Add "eQ Compatible" badge
 
 ## Documentation
@@ -136,6 +155,8 @@ console.log(result.valid); // true/false
 | Document | Description |
 |----------|-------------|
 | [Specification](/spec/SPECIFICATION.md) | Full technical specification |
+| [JSON Schema](/schema/v1/receipt.schema.json) | Authoritative receipt schema (JSON Schema 2020-12) |
+| [QR Payload Schema](/schema/v1/qr-payload.schema.json) | QR code payload schema |
 | [Charter](/spec/CHARTER.md) | Project vision and governance |
 | [Design Decisions](/spec/DESIGN_DECISIONS.md) | Rationale behind decisions |
 

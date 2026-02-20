@@ -19,6 +19,7 @@ Help prove the standard works by implementing it:
 - **POS integration:** Add eQ export to point-of-sale systems
 - **Consumer apps:** Build apps that read eQ receipts
 - **Libraries:** Create eQ libraries for different languages
+- **Validate against the schema:** Use [`schema/v1/receipt.schema.json`](schema/v1/receipt.schema.json) to verify your output
 
 ### 3. Improve Documentation
 
@@ -75,6 +76,7 @@ Examples:
 - [ ] My changes are consistent with eQ's design principles
 - [ ] I have updated relevant documentation
 - [ ] I have tested any code changes
+- [ ] If I changed the data model: the [JSON Schema](schema/v1/receipt.schema.json) is updated and tests pass
 
 ## Specification Change Process
 
@@ -106,6 +108,25 @@ Changes to the core specification require:
 - Follow language conventions
 - Include tests
 - Document public APIs
+
+## JSON Schema & Test Suite
+
+The eQ data model is formally defined as a [JSON Schema 2020-12](https://json-schema.org/draft/2020-12/json-schema-core):
+
+| Schema | Path |
+|--------|------|
+| Receipt | [`schema/v1/receipt.schema.json`](schema/v1/receipt.schema.json) |
+| QR Payload | [`schema/v1/qr-payload.schema.json`](schema/v1/qr-payload.schema.json) |
+
+**Running the tests** (requires Node.js):
+
+```bash
+npm install ajv ajv-formats
+node schema/tests/valid-examples.test.mjs      # 6 positive tests
+node schema/tests/invalid-examples.test.mjs    # 12 negative tests
+```
+
+If you change the specification's data model, you must update the schema and ensure all tests pass. Adding new test cases for edge cases is always welcome.
 
 ## Code of Conduct
 
