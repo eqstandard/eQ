@@ -1571,19 +1571,22 @@ For small businesses without technical resources, a free hosted service is recom
 
 ---
 
-## 12. JSON Schema (Draft)
+## 12. JSON Schema
 
-The formal JSON Schema will be published at:
-```
-https://eqstandard.org/schema/v1/receipt.json
-```
+Authoritative JSON Schemas (JSON Schema 2020-12):
 
-Schema will include:
+| Schema | File | Published URL |
+|--------|------|---------------|
+| **Receipt** | [`schema/v1/receipt.schema.json`](/schema/v1/receipt.schema.json) | `https://eqstandard.org/schema/v1/receipt.json` |
+| **QR Payload** | [`schema/v1/qr-payload.schema.json`](/schema/v1/qr-payload.schema.json) | `https://eqstandard.org/schema/v1/qr-payload.json` |
+
+The receipt schema covers:
 - Type validation for all fields
-- Required field enforcement
-- Enum constraints
-- Format validation (UUID, ISO 8601, ISO 4217, etc.)
-- Extension namespace validation
+- Required field enforcement (conditional by `receipt_type`)
+- Enum constraints (`receipt_type`, `tax_category`, `payment method`, `algorithm`)
+- Format validation (UUID, ISO 8601, ISO 4217, ISO 3166-1, GTIN)
+- Official extension schemas (`eq:warranty`, `eq:b2b`, `eq:loyalty`, `eq:nutrition`, `eq:dpp`, `eq:carbon`, `eq:recall`)
+- Custom extension passthrough (`additionalProperties: object`)
 
 ---
 

@@ -1,0 +1,802 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eqstandard.org/schema/v1/receipt.json",
+  "title": "eQ Receipt",
+  "description": "eQ (electronic Quittung) digital receipt — v1.0 schema",
+  "type": "object",
+  "required": ["eq_version", "receipt"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "eq_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of the eQ specification (e.g. 1.0.0)"
+    },
+    "receipt": {
+      "$ref": "#/$defs/Receipt"
+    },
+    "integrity": {
+      "$ref": "#/$defs/Integrity"
+    }
+  },
+
+  "$defs": {
+
+    "Receipt": {
+      "type": "object",
+      "required": ["id", "issued_at", "timezone", "receipt_type", "currency", "merchant"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Globally unique receipt identifier (UUID v4)"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp with timezone offset (ISO 8601)"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone identifier (e.g. Europe/Zurich)"
+        },
+        "receipt_type": {
+          "type": "string",
+          "enum": ["sale", "refund", "void", "correction"]
+        },
+        "receipt_number": {
+          "type": "string",
+          "description": "Merchant's internal reference number"
+        },
+        "invoice_number": {
+          "type": "string",
+          "description": "Sequential invoice number (e.g. for EU VAT Directive Art. 226)"
+        },
+        "supply_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date supply was made/completed, if different from issued_at"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 3-letter currency code"
+        },
+        "language": {
+          "type": "string",
+          "description": "Primary language of the receipt (BCP 47, e.g. de-CH)"
+        },
+        "refund_info": { "$ref": "#/$defs/RefundInfo" },
+        "void_info": { "$ref": "#/$defs/VoidInfo" },
+        "correction_info": { "$ref": "#/$defs/CorrectionInfo" },
+        "merchant": { "$ref": "#/$defs/Merchant" },
+        "location": { "$ref": "#/$defs/Location" },
+        "transaction": { "$ref": "#/$defs/Transaction" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Item" }
+        },
+        "taxes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TaxLine" }
+        },
+        "totals": { "$ref": "#/$defs/Totals" },
+        "extensions": { "$ref": "#/$defs/Extensions" },
+        "signatures": { "$ref": "#/$defs/Signatures" },
+        "jurisdiction": {
+          "type": "object",
+          "description": "Country-specific fiscal/regulatory metadata (e.g. jurisdiction.at.rksv, jurisdiction.ch)"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "receipt_type": { "const": "sale" } },
+            "required": ["receipt_type"]
+          },
+          "then": {
+            "required": ["transaction", "items", "taxes", "totals"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "receipt_type": { "const": "refund" } },
+            "required": ["receipt_type"]
+          },
+          "then": {
+            "required": ["transaction", "items", "taxes", "totals", "refund_info"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "receipt_type": { "const": "void" } },
+            "required": ["receipt_type"]
+          },
+          "then": {
+            "required": ["void_info"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "receipt_type": { "const": "correction" } },
+            "required": ["receipt_type"]
+          },
+          "then": {
+            "required": ["transaction", "items", "taxes", "totals", "correction_info"]
+          }
+        }
+      ]
+    },
+
+    "Address": {
+      "type": "object",
+      "required": ["line1", "city", "country"],
+      "properties": {
+        "line1": {
+          "type": "string",
+          "description": "Street address, P.O. box, etc."
+        },
+        "line2": {
+          "type": ["string", "null"],
+          "description": "Apartment, suite, floor, building, etc."
+        },
+        "city": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string",
+          "description": "Required where applicable by jurisdiction"
+        },
+        "subdivision": {
+          "type": "string",
+          "description": "State, canton, province, Bundesland, etc."
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "ISO 3166-1 alpha-2 country code"
+        }
+      }
+    },
+
+    "Merchant": {
+      "type": "object",
+      "required": ["name", "address"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Trading name"
+        },
+        "legal_name": {
+          "type": "string",
+          "description": "Official registered name"
+        },
+        "tax_id": {
+          "type": "string",
+          "description": "Tax registration number (jurisdiction dependent)"
+        },
+        "tax_id_type": {
+          "type": "string",
+          "description": "Type of tax ID (e.g. CH_UID, CH_MWST, DE_UST, EU_VAT)"
+        },
+        "address": { "$ref": "#/$defs/Address" },
+        "address_standard": {
+          "type": "string",
+          "description": "Hint indicating which address guidance was used: EN16931, ISO20022, or local"
+        },
+        "contact": { "$ref": "#/$defs/Contact" },
+        "identifiers": {
+          "type": "object",
+          "properties": {
+            "gln": {
+              "type": "string",
+              "pattern": "^[0-9]{13}$",
+              "description": "GS1 Global Location Number"
+            }
+          }
+        }
+      }
+    },
+
+    "Contact": {
+      "type": "object",
+      "properties": {
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string", "format": "uri" }
+      }
+    },
+
+    "Location": {
+      "type": "object",
+      "description": "For multi-location merchants: specific store/branch",
+      "properties": {
+        "name": { "type": "string" },
+        "location_id": { "type": "string" },
+        "address": { "$ref": "#/$defs/Address" },
+        "identifiers": {
+          "type": "object",
+          "properties": {
+            "gln": {
+              "type": "string",
+              "pattern": "^[0-9]{13}$",
+              "description": "GS1 Global Location Number"
+            }
+          }
+        }
+      }
+    },
+
+    "Transaction": {
+      "type": "object",
+      "required": ["transaction_id", "payments"],
+      "properties": {
+        "transaction_id": {
+          "type": "string",
+          "description": "Unique transaction reference"
+        },
+        "terminal_id": {
+          "type": "string",
+          "description": "POS terminal identifier"
+        },
+        "operator_id": {
+          "type": "string",
+          "description": "Cashier/operator identifier"
+        },
+        "transaction_group_id": {
+          "type": "string",
+          "description": "Links multiple receipts in a split transaction"
+        },
+        "transaction_group_index": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Position within a transaction group"
+        },
+        "transaction_group_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total receipts in the transaction group"
+        },
+        "payments": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Payment" }
+        },
+        "change_given": {
+          "type": "number",
+          "description": "Cash change returned to customer"
+        }
+      }
+    },
+
+    "Payment": {
+      "type": "object",
+      "required": ["method", "amount"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["cash", "card", "mobile", "voucher", "invoice", "crypto", "other"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount paid via this method"
+        },
+        "card_type": {
+          "type": "string",
+          "description": "e.g. debit, credit"
+        },
+        "card_brand": {
+          "type": "string",
+          "description": "e.g. Visa, Mastercard, Amex"
+        },
+        "card_last_four": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$"
+        },
+        "authorization_code": { "type": "string" },
+        "reference": {
+          "type": "string",
+          "description": "External reference for reconciliation (e.g. ISO 20022 message ID)"
+        }
+      }
+    },
+
+    "Item": {
+      "type": "object",
+      "required": ["line_number", "description", "quantity", "unit", "unit_price", "total_price", "tax_rate", "tax_category"],
+      "properties": {
+        "line_number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Sequential line number"
+        },
+        "description": {
+          "type": "string",
+          "description": "Item description in the receipt's primary language"
+        },
+        "description_i18n": {
+          "type": "object",
+          "description": "Translations keyed by BCP 47 language tag",
+          "additionalProperties": { "type": "string" }
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity purchased (negative for refund items)"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measure: piece, kg, g, lb, oz, l, ml, m, cm, sqm, hour (extensible)"
+        },
+        "unit_price": {
+          "type": "number",
+          "description": "Price per unit (before line discounts)"
+        },
+        "total_price": {
+          "type": "number",
+          "description": "Line total after line discounts (negative for refund items)"
+        },
+        "tax_rate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Applicable tax rate as percentage (e.g. 8.1)"
+        },
+        "tax_category": {
+          "type": "string",
+          "enum": ["standard", "reduced", "zero", "exempt"]
+        },
+        "discounts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Discount" }
+        },
+        "identifiers": {
+          "type": "object",
+          "properties": {
+            "gtin": {
+              "type": "string",
+              "pattern": "^(\\d{8}|\\d{12}|\\d{13}|\\d{14})$",
+              "description": "GS1 Global Trade Item Number (GTIN-8, -12, -13, or -14)"
+            },
+            "sku": {
+              "type": "string",
+              "description": "Merchant's internal SKU"
+            }
+          }
+        },
+        "product_info": {
+          "type": "object",
+          "properties": {
+            "brand": { "type": "string" },
+            "category": { "type": "string" },
+            "category_code": { "type": "string" }
+          }
+        },
+        "original_line_number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "References line_number in the original receipt (for refunds)"
+        }
+      }
+    },
+
+    "Discount": {
+      "type": "object",
+      "required": ["amount", "type"],
+      "properties": {
+        "description": { "type": "string" },
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "enum": ["fixed", "percentage"]
+        }
+      }
+    },
+
+    "TaxLine": {
+      "type": "object",
+      "required": ["tax_category", "tax_rate", "taxable_amount", "tax_amount"],
+      "properties": {
+        "tax_category": {
+          "type": "string",
+          "enum": ["standard", "reduced", "zero", "exempt"]
+        },
+        "tax_rate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Tax rate as percentage"
+        },
+        "taxable_amount": {
+          "type": "number",
+          "description": "Amount subject to this tax rate"
+        },
+        "tax_amount": {
+          "type": "number",
+          "description": "Calculated tax amount"
+        },
+        "exemption_reason": {
+          "type": "string",
+          "description": "e.g. Art. 148(a) export, reverse charge"
+        }
+      }
+    },
+
+    "Totals": {
+      "type": "object",
+      "required": ["subtotal", "tax_total", "total", "grand_total", "amount_paid", "amount_due"],
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "description": "Sum of line totals before tax"
+        },
+        "discount_total": {
+          "type": "number",
+          "description": "Total receipt-level discounts"
+        },
+        "tax_total": {
+          "type": "number",
+          "description": "Sum of all tax amounts"
+        },
+        "total": {
+          "type": "number",
+          "description": "Subtotal + tax - discounts"
+        },
+        "rounding": {
+          "type": "number",
+          "description": "Cash rounding adjustment (e.g. CHF 5-Rappen rounding)"
+        },
+        "grand_total": {
+          "type": "number",
+          "description": "Final amount after rounding"
+        },
+        "amount_paid": {
+          "type": "number",
+          "description": "Amount customer paid"
+        },
+        "amount_due": {
+          "type": "number",
+          "description": "Remaining balance (0.00 for fully paid)"
+        }
+      }
+    },
+
+    "RefundInfo": {
+      "type": "object",
+      "required": ["original_receipt_id"],
+      "properties": {
+        "original_receipt_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "ID of the original purchase receipt"
+        },
+        "original_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "original_merchant_hash": {
+          "type": "string",
+          "description": "Hash for matching without full ID"
+        },
+        "partial_return": {
+          "type": "boolean",
+          "description": "True if only some items returned"
+        },
+        "reason": {
+          "type": "string",
+          "enum": ["customer_return", "defective", "wrong_item", "price_adjustment", "other"]
+        }
+      }
+    },
+
+    "VoidInfo": {
+      "type": "object",
+      "required": ["voided_receipt_id", "voided_at"],
+      "properties": {
+        "voided_receipt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "voided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": { "type": "string" }
+      }
+    },
+
+    "CorrectionInfo": {
+      "type": "object",
+      "required": ["original_receipt_id"],
+      "properties": {
+        "original_receipt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": { "type": "string" },
+        "voided_original": {
+          "type": "boolean",
+          "description": "Whether the original receipt was voided"
+        }
+      }
+    },
+
+    "Signatures": {
+      "type": "object",
+      "properties": {
+        "merchant": { "$ref": "#/$defs/MerchantSignature" },
+        "fiscal": { "$ref": "#/$defs/FiscalSignature" }
+      }
+    },
+
+    "MerchantSignature": {
+      "type": "object",
+      "required": ["algorithm", "key_id", "certificate_url", "signed_fields", "signature"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": ["ES256", "RS256"],
+          "description": "ES256 (recommended) or RS256"
+        },
+        "key_id": {
+          "type": "string",
+          "description": "Identifier for the signing key"
+        },
+        "certificate_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to merchant's public certificate (e.g. /.well-known/eq/cert.pem)"
+        },
+        "signed_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Fields covered by the signature (e.g. [\"receipt\"])"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Base64-encoded JWS detached signature"
+        }
+      }
+    },
+
+    "FiscalSignature": {
+      "type": "object",
+      "required": ["country", "scheme", "signature"],
+      "description": "Jurisdiction-required fiscal device signature (e.g. DE TSE, AT RKSV)",
+      "properties": {
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "ISO 3166-1 alpha-2"
+        },
+        "scheme": {
+          "type": "string",
+          "description": "Fiscal scheme identifier (e.g. TSE, RKSV)"
+        },
+        "device_id": { "type": "string" },
+        "transaction_number": { "type": "integer" },
+        "signature_counter": { "type": "integer" },
+        "start_time": { "type": "string", "format": "date-time" },
+        "end_time": { "type": "string", "format": "date-time" },
+        "signature": {
+          "type": "string",
+          "description": "Base64-encoded fiscal signature"
+        },
+        "public_key": {
+          "type": "string",
+          "description": "Base64-encoded public key of the fiscal device"
+        }
+      }
+    },
+
+    "Integrity": {
+      "type": "object",
+      "required": ["algorithm", "hash", "scope"],
+      "description": "Quick integrity verification without full signature check",
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "description": "Hash algorithm (e.g. SHA-256)"
+        },
+        "hash": {
+          "type": "string",
+          "description": "Hex-encoded hash value"
+        },
+        "scope": {
+          "type": "string",
+          "description": "What the hash covers (e.g. receipt)"
+        }
+      }
+    },
+
+    "Extensions": {
+      "type": "object",
+      "description": "Optional modules — official (eq:*) and custom (custom:*)",
+      "properties": {
+        "eq:warranty": { "$ref": "#/$defs/WarrantyExtension" },
+        "eq:b2b": { "$ref": "#/$defs/B2BExtension" },
+        "eq:loyalty": { "$ref": "#/$defs/LoyaltyExtension" },
+        "eq:nutrition": { "$ref": "#/$defs/NutritionExtension" },
+        "eq:dpp": { "$ref": "#/$defs/DPPExtension" },
+        "eq:carbon": { "$ref": "#/$defs/CarbonExtension" },
+        "eq:recall": { "$ref": "#/$defs/RecallExtension" }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "description": "Custom extension (namespace: custom:*)"
+      }
+    },
+
+    "WarrantyExtension": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["line_number", "warranty_months"],
+            "properties": {
+              "line_number": { "type": "integer", "minimum": 1 },
+              "warranty_months": { "type": "integer", "minimum": 0 },
+              "warranty_type": {
+                "type": "string",
+                "description": "e.g. manufacturer, extended, store"
+              },
+              "warranty_expires": { "type": "string", "format": "date" },
+              "warranty_url": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    },
+
+    "B2BExtension": {
+      "type": "object",
+      "description": "Business-to-business fields (customer identification for invoicing)",
+      "properties": {
+        "customer_vat_id": { "type": "string" },
+        "customer_name": { "type": "string" },
+        "customer_address": { "$ref": "#/$defs/Address" },
+        "order_reference": { "type": "string" },
+        "contract_reference": { "type": "string" }
+      }
+    },
+
+    "LoyaltyExtension": {
+      "type": "object",
+      "properties": {
+        "program_name": { "type": "string" },
+        "member_id_hash": {
+          "type": "string",
+          "description": "Hashed member ID (never plain-text, privacy)"
+        },
+        "points_earned": { "type": "number" },
+        "points_redeemed": { "type": "number" },
+        "points_balance": { "type": "number" }
+      }
+    },
+
+    "NutritionExtension": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["line_number"],
+            "properties": {
+              "line_number": { "type": "integer", "minimum": 1 },
+              "gtin": { "type": "string" },
+              "nutri_score": {
+                "type": "string",
+                "pattern": "^[A-E]$"
+              },
+              "allergens": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "calories_per_100g": { "type": "number", "minimum": 0 },
+              "is_organic": { "type": "boolean" },
+              "is_vegan": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+
+    "DPPExtension": {
+      "type": "object",
+      "description": "EU Digital Product Passport — links receipt items to DPP data",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["line_number", "dpp_uri"],
+            "properties": {
+              "line_number": { "type": "integer", "minimum": 1 },
+              "gtin": { "type": "string" },
+              "dpp_uri": {
+                "type": "string",
+                "format": "uri",
+                "description": "URI to the product's Digital Product Passport"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "CarbonExtension": {
+      "type": "object",
+      "properties": {
+        "total_co2_kg": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total CO₂ equivalent for the receipt (kg)"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["line_number", "co2_kg"],
+            "properties": {
+              "line_number": { "type": "integer", "minimum": 1 },
+              "co2_kg": { "type": "number", "minimum": 0 },
+              "source": {
+                "type": "string",
+                "description": "Data provider (e.g. carboncloud.com)"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "RecallExtension": {
+      "type": "object",
+      "description": "Product recall status for purchased items",
+      "properties": {
+        "check_enabled": { "type": "boolean" },
+        "last_checked": { "type": "string", "format": "date-time" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["line_number", "gtin", "recall_status"],
+            "properties": {
+              "line_number": { "type": "integer", "minimum": 1 },
+              "gtin": { "type": "string" },
+              "recall_status": {
+                "type": "string",
+                "enum": ["none", "recalled", "watch", "unknown"]
+              },
+              "recall_info": {
+                "type": "object",
+                "properties": {
+                  "recall_id": { "type": "string" },
+                  "source": { "type": "string" },
+                  "severity": { "type": "string" },
+                  "reason": { "type": "string" },
+                  "action": { "type": "string" },
+                  "issued_date": { "type": "string", "format": "date" },
+                  "url": { "type": "string", "format": "uri" }
+                }
+              },
+              "checked_sources": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  }
+}

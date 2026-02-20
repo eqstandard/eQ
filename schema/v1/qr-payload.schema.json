@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eqstandard.org/schema/v1/qr-payload.json",
+  "title": "eQ QR Code Payload",
+  "description": "Payload contained in eQ QR codes — token-only model for receipt retrieval",
+  "type": "object",
+  "required": ["eq", "endpoint", "receipt_id", "token"],
+  "properties": {
+    "eq": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "eQ protocol version (major.minor, e.g. 1.0)"
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "description": "Merchant API base URL"
+    },
+    "receipt_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Receipt identifier (UUID v4)"
+    },
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Access token for receipt retrieval"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Receipt timestamp for display before fetch (optional)"
+    }
+  },
+  "additionalProperties": false
+}
