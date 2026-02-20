@@ -5,7 +5,7 @@
 **Website:** eqstandard.org
 
 **Document Status:** Draft  
-**Date:** 2026-01-31  
+**Date:** 2026-02-20  
 **Target Format:** JSON with JSON Schema validation
 
 ---
@@ -82,29 +82,24 @@
 
 ### 2.3 Consumer Access Model
 
-When a consumer makes a purchase, they receive:
-
-1. **Access Token** - Cryptographic proof of purchase entitlement
-2. **Receipt Reference** - Pointer to where the receipt is stored
-3. **Merchant Endpoint** - Where to fetch the full receipt
+When a consumer makes a purchase, they receive a **QR code** (or NFC/Airdrop) containing a token. The token is the only thing needed to fetch the receipt.
 
 ```json
 {
-  "access_token": "eyJhbGciOiJFUzI1NiIs...",
-  "receipt_ref": {
-    "receipt_id": "550e8400-e29b-41d4-a716-446655440000",
-    "merchant_domain": "shop.example.ch",
-    "endpoint": "https://shop.example.ch/eq/v1/receipts/",
-    "issued_at": "2026-01-31T14:30:00+01:00",
-    "expires_at": "2036-01-31T14:30:00+01:00"
-  }
+  "eq": "1.0",
+  "endpoint": "https://shop.example.ch/eq/v1",
+  "receipt_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token": "<access-token>",
+  "issued_at": "2026-01-31T14:30:00+01:00"
 }
 ```
 
+The consumer's app calls `GET {endpoint}/receipts/{receipt_id}` with `Authorization: Bearer {token}`.
+
 **Consumer options:**
-- **Fetch on demand:** App retrieves receipt from merchant when needed
-- **Cache locally:** Consumer can download and store full receipt
-- **Delete token:** Consumer can discard access (merchant still has data for legal retention)
+- **Fetch and store:** App retrieves and stores the full receipt locally
+- **Fetch later:** QR scan works offline; receipt loads when internet is available
+- **Delete token:** Consumer can discard access at any time
 
 ### 2.4 Crawler Protection
 
@@ -145,7 +140,7 @@ Response: Full eQ receipt JSON (if token valid)
           429 (if rate limited)
 ```
 
-**Minimum retention:** Merchants SHOULD retain receipts for legal minimum (typically 10 years for tax purposes).
+**Retention:** Consumer SHOULD store the receipt locally upon first fetch. Long-term retention is the consumer's responsibility. Merchants SHOULD serve receipts while the business is active.
 
 ---
 
@@ -386,7 +381,7 @@ For jurisdictions requiring fiscal device signatures (e.g., Germany TSE, Austria
 }
 ```
 
-### 3.5 Receipt Integrity Hash
+### 3.6 Receipt Integrity Hash
 
 For quick integrity verification without full signature check:
 
@@ -400,7 +395,7 @@ For quick integrity verification without full signature check:
 }
 ```
 
-### 3.6 Jurisdiction Extensions (Optional)
+### 3.7 Jurisdiction Extensions (Optional)
 
 **Austria (RKSV):** Use `jurisdiction.at.rksv` with e.g. `kassen_id`, `receipt_number`, `encrypted_turnover_counter`, `previous_receipt_hash`, `signature`, `scu_provider`. Fiscal middleware (e.g. fiskaltrust) produces the RKSV signature; eQ carries it.
 
@@ -437,6 +432,10 @@ Receipt
     "timezone": "IANA timezone",
     "receipt_type": "enum: sale | refund | void | correction",
     "receipt_number": "string (merchant's reference)",
+    "invoice_number": "string (sequential, optional)",
+    "supply_date": "ISO 8601 date (optional)",
+    "currency": "ISO 4217",
+    "language": "BCP 47 (optional)",
     
     "merchant": { },
     "location": { },
@@ -466,7 +465,10 @@ Receipt
     "timezone": "Europe/Zurich",
     "receipt_type": "sale",
     "receipt_number": "R-2026-00001234",
-    "currency": "CHF"
+    "invoice_number": "INV-2026-001234",
+    "supply_date": "2026-01-31",
+    "currency": "CHF",
+    "language": "de-CH"
   }
 }
 ```
@@ -482,8 +484,9 @@ Receipt
 | `invoice_number` | string | No | Sequential invoice number (e.g. for Art. 226) |
 | `supply_date` | date | No | Date supply made/completed (if ≠ issued_at) |
 | `currency` | ISO 4217 | Yes | 3-letter currency code |
+| `language` | BCP 47 | No | Primary language of the receipt (e.g. `de`, `fr-CH`) |
 
-### 3.1.1 Receipt Types
+### 4.3.2 Receipt Types
 
 | Type | Usage |
 |------|-------|
@@ -492,7 +495,7 @@ Receipt
 | `void` | Cancels a previous receipt |
 | `correction` | Replaces an incorrect receipt |
 
-### 3.1.2 Refund Receipts
+### 4.3.3 Refund Receipts
 
 For refunds and returns, include `refund_info`:
 
@@ -537,7 +540,7 @@ For refunds and returns, include `refund_info`:
 - `price_adjustment` - Price correction
 - `other` - Other reason
 
-### 3.1.3 Void Receipts
+### 4.3.4 Void Receipts
 
 To cancel a receipt entirely:
 
@@ -552,7 +555,7 @@ To cancel a receipt entirely:
 }
 ```
 
-### 3.1.4 Correction Receipts
+### 4.3.5 Correction Receipts
 
 To replace an incorrect receipt:
 
@@ -572,7 +575,7 @@ To replace an incorrect receipt:
 2. Correction receipt issued with correct information
 3. Both receipts reference each other via IDs
 
-### 3.1.5 Split Transaction Support
+### 4.3.6 Split Transaction Support
 
 For transactions split across multiple payments:
 
@@ -603,7 +606,7 @@ For transactions split across multiple payments:
 
 ---
 
-### 3.2 Merchant (Required)
+### 4.4 Merchant (Required)
 
 ```json
 {
@@ -648,7 +651,7 @@ For transactions split across multiple payments:
 
 ---
 
-### 3.3 Location (Optional)
+### 4.5 Location (Optional)
 
 For multi-location merchants:
 
@@ -676,7 +679,7 @@ For multi-location merchants:
 
 ---
 
-### 3.4 Transaction (Required)
+### 4.6 Transaction (Required)
 
 ```json
 {
@@ -691,7 +694,8 @@ For multi-location merchants:
         "card_type": "debit",
         "card_brand": "Visa",
         "card_last_four": "1234",
-        "authorization_code": "ABC123"
+        "authorization_code": "ABC123",
+        "reference": "MSG-20260131-001234"
       }
     ],
     "change_given": 0.00
@@ -720,7 +724,7 @@ For multi-location merchants:
 
 ---
 
-### 3.5 Items (Required)
+### 4.7 Items (Required)
 
 ```json
 {
@@ -728,6 +732,10 @@ For multi-location merchants:
     {
       "line_number": 1,
       "description": "Organic Milk 1L",
+      "description_i18n": {
+        "de": "Bio Vollmilch 1L",
+        "fr": "Lait bio entier 1L"
+      },
       "quantity": 2,
       "unit": "piece",
       "unit_price": 2.50,
@@ -771,7 +779,8 @@ For multi-location merchants:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `line_number` | integer | Yes | Sequential line number |
-| `description` | string | Yes | Item description |
+| `description` | string | Yes | Item description (primary language) |
+| `description_i18n` | object | No | Translations keyed by BCP 47 tag (e.g. `{"de":"Milch","fr":"Lait"}`) |
 | `quantity` | decimal | Yes | Quantity purchased |
 | `unit` | string | Yes | Unit of measure |
 | `unit_price` | decimal | Yes | Price per unit (before line discounts) |
@@ -786,7 +795,7 @@ For multi-location merchants:
 **Units Enum (extensible):**
 - `piece`, `kg`, `g`, `lb`, `oz`, `l`, `ml`, `m`, `cm`, `sqm`, `hour`
 
-### 3.5.1 GTIN (Barcode) - Critical for Ecosystem Value
+### 4.7.1 GTIN (Barcode) - Critical for Ecosystem Value
 
 The **GTIN (Global Trade Item Number)** is the barcode number on products. Including GTIN is **strongly recommended** because it enables the entire ecosystem of value-added services:
 
@@ -843,7 +852,7 @@ GTIN enables:
 
 ---
 
-### 3.6 Taxes (Required)
+### 4.8 Taxes (Required)
 
 ```json
 {
@@ -881,7 +890,7 @@ GTIN enables:
 
 ---
 
-### 3.7 Totals (Required)
+### 4.9 Totals (Required)
 
 ```json
 {
@@ -911,11 +920,11 @@ GTIN enables:
 
 ---
 
-## 4. Extensions (Optional Modules)
+## 5. Extensions (Optional Modules)
 
 Extensions allow optional data without bloating the core spec.
 
-### 4.1 Extension Namespace
+### 5.1 Extension Namespace
 
 ```json
 {
@@ -930,7 +939,7 @@ Extensions allow optional data without bloating the core spec.
 }
 ```
 
-### 4.2 Warranty Extension
+### 5.2 Warranty Extension
 
 ```json
 {
@@ -950,7 +959,7 @@ Extensions allow optional data without bloating the core spec.
 }
 ```
 
-### 4.3 Loyalty Extension
+### 5.3 Loyalty Extension
 
 ```json
 {
@@ -966,7 +975,7 @@ Extensions allow optional data without bloating the core spec.
 }
 ```
 
-### 4.4 Nutrition Extension
+### 5.4 Nutrition Extension
 
 ```json
 {
@@ -988,7 +997,7 @@ Extensions allow optional data without bloating the core spec.
 }
 ```
 
-### 4.5 EU Digital Product Passport (DPP) Extension
+### 5.5 EU Digital Product Passport (DPP) Extension
 
 Optional link to EU DPP per item. Same product identifier (GTIN / GS1 Digital Link) links receipt line to DPP data.
 
@@ -1004,7 +1013,7 @@ Optional link to EU DPP per item. Same product identifier (GTIN / GS1 Digital Li
 }
 ```
 
-### 4.6 Carbon Footprint Extension
+### 5.6 Carbon Footprint Extension
 
 ```json
 {
@@ -1023,7 +1032,7 @@ Optional link to EU DPP per item. Same product identifier (GTIN / GS1 Digital Li
 }
 ```
 
-### 4.7 Product Recall Extension (Consumer Safety)
+### 5.7 Product Recall Extension (Consumer Safety)
 
 **Critical feature:** Automatically notify consumers when a purchased product is recalled.
 
@@ -1119,28 +1128,6 @@ Optional link to EU DPP per item. Same product identifier (GTIN / GS1 Digital Li
 
 ---
 
-## 5. Signatures & Integrity (Optional)
-
-For tamper-proof receipts (e.g., legal compliance):
-
-```json
-{
-  "signatures": {
-    "merchant_signature": {
-      "algorithm": "RS256",
-      "certificate_url": "https://merchant.com/.well-known/eq/cert.pem",
-      "signature": "base64-encoded-signature"
-    },
-    "fiscal_signature": {
-      "country": "AT",
-      "device_id": "FISC-001",
-      "signature": "base64-encoded-signature",
-      "qr_code_data": "..."
-    }
-  }
-}
-```
-
 ---
 
 ## 6. Transport Mechanisms
@@ -1154,9 +1141,10 @@ For tamper-proof receipts (e.g., legal compliance):
 | **Email** | Traditional digital receipt | Medium |
 | **API Push** | To consumer's app/bank | Medium |
 | **API Pull** | Consumer fetches from merchant | Medium |
+| **Airdrop** | iOS proximity delivery | High |
 | **Bluetooth** | Proximity delivery | High |
 
-**Security:** Consumer apps MUST verify the receipt signature regardless of transport. QR, NFC, API, email MUST be treated as untrusted; security comes from the receipt signature.
+**Security:** Consumer apps MUST verify the receipt signature regardless of transport. QR, NFC, Airdrop, API, email MUST be treated as untrusted; security comes from the receipt signature.
 
 ### 6.2 QR Code Payload (Standard)
 
@@ -1168,9 +1156,18 @@ QR contains **only** the reference and access token. App fetches receipt from me
   "eq": "1.0",
   "endpoint": "https://shop.example.ch/eq/v1",
   "receipt_id": "550e8400-e29b-41d4-a716-446655440000",
-  "token": "<access-token>"
+  "token": "<access-token>",
+  "issued_at": "2026-01-31T14:30:00+01:00"
 }
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `eq` | string | Yes | eQ protocol version |
+| `endpoint` | URL | Yes | Merchant API base URL |
+| `receipt_id` | UUID | Yes | Receipt identifier |
+| `token` | string | Yes | Access token for retrieval |
+| `issued_at` | ISO 8601 | No | Receipt timestamp (for display before fetch) |
 
 **Usage:** App calls `GET {endpoint}/receipts/{receipt_id}` with `Authorization: Bearer {token}` and displays the returned receipt. Embedded or multi-QR modes may be defined in future extensions.
 
@@ -1321,20 +1318,17 @@ Most modern tax authorities explicitly accept digital-born documents (like eQ) a
 
 ### 8.3 Alignment with E-Invoice Standards
 
-| eQ Field | ZUGFeRD/Factur-X Equivalent |
-|------------|----------------------------|
-| `merchant.tax_id` | BT-31 Seller VAT identifier |
-| `items[].gtin` | BT-157 Item standard identifier |
-| `taxes[].tax_rate` | BT-152 Invoiced item VAT rate |
-| `totals.grand_total` | BT-112 Invoice total with VAT |
+See **Appendix A** for the full EN 16931 field mapping (eQ field → Business Term). eQ's data model maps cleanly to ZUGFeRD/Factur-X and UBL invoices.
 
 ### 8.4 Retention Model
 
-| Period | Responsibility | Notes |
-|--------|----------------|-------|
-| 0-3 years | Merchant MUST serve receipts | Merchant API must be available |
-| 3-10 years | Merchant SHOULD serve; User SHOULD backup | Migration to archive allowed |
-| 10+ years | User responsibility | Archive service recommended |
+Since eQ uses a **token-only** model (consumer fetches and stores the receipt), long-term retention is the **consumer's responsibility**.
+
+| Party | Responsibility |
+|-------|----------------|
+| **Merchant** | SHOULD serve receipts while business is active. MAY migrate to archive on closure. |
+| **Consumer** | SHOULD store receipt locally upon first fetch. Responsible for long-term retention. |
+| **Archive service** | Optional backup for consumer or merchant closure (see §9). |
 
 ---
 
@@ -1458,17 +1452,21 @@ For small businesses without technical resources, a free hosted service is recom
     "receipt_type": "sale",
     "receipt_number": "R-2026-00001234",
     "currency": "CHF",
+    "language": "de-CH",
     
     "merchant": {
       "name": "Bio Market",
       "tax_id": "CHE-123.456.789 MWST",
       "tax_id_type": "CH_MWST",
       "address": {
-        "street": "Bahnhofstrasse 1",
+        "line1": "Bahnhofstrasse 1",
+        "line2": null,
         "city": "Zürich",
         "postal_code": "8001",
+        "subdivision": "ZH",
         "country": "CH"
-      }
+      },
+      "address_standard": "EN16931"
     },
     
     "transaction": {
@@ -1488,6 +1486,11 @@ For small businesses without technical resources, a free hosted service is recom
       {
         "line_number": 1,
         "description": "Bio Vollmilch 1L",
+        "description_i18n": {
+          "de": "Bio Vollmilch 1L",
+          "fr": "Lait bio entier 1L",
+          "en": "Organic Whole Milk 1L"
+        },
         "quantity": 2,
         "unit": "piece",
         "unit_price": 2.90,
@@ -1792,6 +1795,8 @@ No special fields needed - UTF-8 handles directionality. Apps must:
 
 - **Merchant identity:** Optional `did:web` support (v1.1).
 - **Selective disclosure:** SD-JWT (RFC 9901) for privacy-preserving receipt sharing (v1.1+).
+- **Linked data:** Optional Schema.org `@context` for eQ receipts (v1.1).
+- **Verifiable Credentials:** Explore W3C VC as alternative receipt packaging (v1.1+).
 
 ---
 

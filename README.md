@@ -50,7 +50,7 @@
 | ✍️ **Forgery-Proof** | Cryptographic signatures verify authenticity |
 | 🌍 **Decentralized** | Data stays with merchants, no central database |
 | 🌐 **International** | Multi-currency, multi-language support |
-| 📱 **Offline-First** | QR codes work without internet |
+| 📱 **Offline-First** | Scan QR offline; receipt loads when connected |
 
 ## Why eQ?
 

@@ -5,7 +5,7 @@
 **Website:** eqstandard.org
 
 **Document Status:** Working Document  
-**Date:** 2026-01-31  
+**Date:** 2026-02-20  
 **Purpose:** Record key design decisions and their rationale
 
 ---
@@ -129,7 +129,7 @@ This would allow:
 
 **Signature:** Receipt and signature in the same JSON document. JCS (RFC 8785) + JWS detached (RFC 7515); signature over full receipt. Any modification invalidates the signature.
 
-**QR:** Single payload only: endpoint, receipt_id, token. App fetches receipt via API. No embedded receipt or multi-QR in v1.0.
+**QR:** Single payload only: endpoint, receipt_id, token, optional issued_at. App fetches receipt via API. No embedded receipt or multi-QR in v1.0.
 
 **Transport:** All channels (QR, NFC, API, email) are untrusted. Consumer apps MUST verify receipt signature regardless of transport.
 
@@ -379,7 +379,7 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 
 ---
 
-### 0.5 Format Decision Summary
+### 0.6 Format Decision Summary
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -435,7 +435,9 @@ CSV (Comma-Separated Values) was considered for line items due to its simplicity
 **Implementation:**
 - Primary: QR code printed on paper or displayed on screen
 - Secondary: Airdrop (iOS), Nearby Share (Android), Bluetooth
-- QR code contains either full receipt (if small) or retrieval token
+- QR code contains only the retrieval token (endpoint, receipt_id, access token)
+- Consumer app fetches the full receipt via API when internet is available
+- The QR scan itself works offline (token is stored locally until connectivity returns)
 
 ```
 Consumer at checkout:
@@ -449,30 +451,30 @@ Consumer at checkout:
 │  │ ▄▄▄▄▄▄▄ │  ← Consumer scans with any app                     │
 │  │ █ ▀▀▀ █ │     No account needed                              │
 │  │ ▀▀▀▀▀▀▀ │     No identification required                     │
-│  └─────────┘                                                    │
+│  └─────────┘     Token stored; receipt fetched when online       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 Receipt Size Limits
 
-**Decision:** Two approaches supported:
+**Decision:** QR code contains only a retrieval token. No embedded receipt or multi-QR in v1.0.
 
-| Approach | When to Use | How It Works |
-|----------|-------------|--------------|
-| **Multi-QR** | Medium receipts (3-10KB) | Multiple QR codes, numbered (1/3, 2/3, 3/3) |
-| **URL Reference** | Large receipts (>10KB) | QR code contains URL to full JSON |
+| Approach | Description |
+|----------|-------------|
+| **Token-only QR** | QR encodes endpoint + receipt_id + access token. Consumer app fetches receipt via API. |
 
-**Multi-QR Format:**
-```
-QR Code 1: eq://v1/multi/1of3/{base64-chunk-1}
-QR Code 2: eq://v1/multi/2of3/{base64-chunk-2}
-QR Code 3: eq://v1/multi/3of3/{base64-chunk-3}
+**QR Payload (JSON):**
+```json
+{
+  "eq": "1.0",
+  "endpoint": "https://shop.example.ch/eq/v1",
+  "receipt_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token": "<access-token>",
+  "issued_at": "2026-01-31T14:30:00+01:00"
+}
 ```
 
-**URL Reference Format:**
-```
-eq://v1/fetch/{receipt-id}?m={merchant-domain}&t={access-token}
-```
+Receipt size is irrelevant for the QR code since it only carries the token. The full receipt lives on the merchant's API.
 
 ### 1.3 Refund/Return Linking
 
@@ -593,13 +595,14 @@ eq://v1/fetch/{receipt-id}?m={merchant-domain}&t={access-token}
 
 ### 2.1 Retention Period
 
-**Decision:** Standard supports receipts for 10+ years, but user responsibility after 3 years.
+**Decision:** Merchant serves receipts while active. Consumer stores locally upon first fetch. Long-term retention is the consumer's responsibility.
 
-| Period | Responsibility |
+| Aspect | Responsibility |
 |--------|----------------|
-| 0-3 years | Merchant MUST retain and serve receipt |
-| 3-10 years | Merchant SHOULD retain; user SHOULD have local copy |
-| 10+ years | User responsibility; archive services available |
+| **Serving** | Merchant hosts receipt at API endpoint while merchant is active |
+| **First fetch** | Consumer app fetches and stores receipt locally upon first retrieval |
+| **Long-term** | Consumer's responsibility; local copy is the authoritative record after fetch |
+| **Offline access** | Consumer app provides access from local storage at any time |
 
 ### 2.2 Merchant Goes Out of Business
 
@@ -788,7 +791,7 @@ If "No thanks":
 - Traceability and verifiability ✅ (signature, receipt ID)
 - Completeness and accuracy ✅ (schema validation)
 - Immutability ✅ (cryptographic signature)
-- 10-year retention ✅ (archive service support)
+- Retention support ✅ (consumer local storage + archive service)
 - Machine-readable format ✅ (JSON)
 - Tax authority data access ✅ (standard API)
 
@@ -805,8 +808,8 @@ This means eQ receipts (born digital) are equally valid - actually better since 
 
 | Jurisdiction | Legal Requirement | eQ Approach |
 |--------------|-------------------|---------------|
-| Switzerland | 10 years (business) | Merchant: 3 years; User: remainder |
-| Germany | 10 years (business) | Merchant: 3 years; User: remainder |
+| Switzerland | 10 years (business) | Consumer stores locally; archive service for backup |
+| Germany | 10 years (business) | Consumer stores locally; archive service for backup |
 | Personal use | Varies | User decides |
 
 ### 4.4 E-Commerce
@@ -876,9 +879,8 @@ Small shop workflow:
 
 **Decision:** Standard supports parallel paper and digital.
 
-- Receipt can indicate `"paper_issued": true`
 - No conflict between systems
-- Consumer choice respected
+- Consumer choice respected at checkout
 
 ### 5.4 Consumer Education
 
@@ -1089,7 +1091,7 @@ Cache successful fetches locally.
 
 1. **Privacy by default** - No customer data on receipts
 2. **Token-based access** - Like a coat check ticket
-3. **User responsibility** - After 3 years, user maintains their receipts
+3. **User responsibility** - Consumer stores receipts locally after fetch
 4. **Graceful degradation** - Handle errors without crashing
 5. **Algorithm agility** - Future-proof crypto
 6. **Offline-first** - QR codes work without internet
@@ -1098,4 +1100,4 @@ Cache successful fetches locally.
 
 ---
 
-*This document records design decisions. Final specifications are in 02_TECHNICAL_SPECIFICATION.md*
+*This document records design decisions. Final specifications are in SPECIFICATION.md*

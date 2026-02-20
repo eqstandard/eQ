@@ -5,7 +5,7 @@
 **Website:** eqstandard.org
 
 **Document Status:** Draft  
-**Date:** 2026-01-31  
+**Date:** 2026-02-20  
 **License:** CC-BY-4.0 (this document), Community Specification 1.0 (specification)
 
 ---
@@ -319,10 +319,10 @@ All contributors must agree to:
 
 ## 11. Contact
 
-**Project Lead:** [Your Name]  
-**Email:** [TBD]  
-**GitHub:** [TBD - e.g., github.com/open-digital-receipt-standard]  
-**Website:** [TBD - e.g., openreceiptstandard.org]
+**Project Lead:** Martin Koch  
+**Email:** team@eqstandard.org  
+**GitHub:** https://github.com/Martin-Koch-Roundit/eQ
+**Website:** https://eqstandard.org/
 
 ---
 
@@ -334,7 +334,7 @@ All contributors must agree to:
 | **ZUGFeRD / Factur-X** | B2B invoice compatibility (EN 16931-based) |
 | **OMG DRAPI** | Learn from; differentiate on decentralization, privacy |
 | **fiskaltrust** | Implementation partner for DACH fiscal (TSE/RKSV) |
-| **EU Digital Product Passport** | Future extension (v1.1+), product/sustainability |
+| **EU Digital Product Passport** | v1.0 extension (eq:dpp), product/sustainability |
 | **SDRS** | Learn from; potentially compatible extension |
 | **GS1 Digital Link** | Product identification; recommend GTINs where available |
 | **JSON Schema** | Validation |
